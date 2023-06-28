@@ -2,16 +2,16 @@ package net.md_5.bungee;
 
 
 import com.google.gson.JsonIOException;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import net.md_5.bungee.api.ChatColor;
@@ -69,33 +69,27 @@ public class BungeeCordLauncher
 
                 try
                 {
-                    URL api = new URL( "https://api.github.com/repos/SimplyRin/HexaCord/releases/latest" );
+                    URL api = new URL( "https://ci.simplyrin.net/job/HexaCord-r/lastStableBuild/buildNumber" );
                     URLConnection con = api.openConnection();
                     // 15 second timeout at various stages
                     con.setConnectTimeout( 15000 );
                     con.setReadTimeout( 15000 );
 
-                    String tagName = null;
-
                     try
                     {
-                        JsonObject json = new JsonParser().parse( new InputStreamReader( con.getInputStream() ) ).getAsJsonObject();
-                        tagName = json.get( "tag_name" ).getAsString();
+                        String num = new BufferedReader( new InputStreamReader( con.getInputStream(), StandardCharsets.UTF_8 ) ).lines().collect( Collectors.joining() );
 
-                        int latestVersion = Integer.parseInt( tagName.substring( 1, tagName.length() ) );
+                        int latestVersion = Integer.parseInt( num );
 
                         if ( latestVersion > currentVersion )
                         {
                             System.err.println( "*** Warning, this build is outdated ***" );
                             System.err.println( "*** Please download a new build from https://ci.simplyrin.net/job/HexaCord ***" );
                             System.err.println( "*** You will get NO support regarding this build ***" );
-                            System.err.println( "*** Server will start in 10 seconds ***" );
-                            Thread.sleep( TimeUnit.SECONDS.toMillis( 10 ) );
+                            System.err.println( "*** Server will start in 2 seconds ***" );
+                            Thread.sleep( TimeUnit.SECONDS.toMillis( 2 ) );
                         }
                     } catch ( JsonIOException e )
-                    {
-                        throw new IOException( e );
-                    } catch ( JsonSyntaxException e )
                     {
                         throw new IOException( e );
                     } catch ( NumberFormatException e )
