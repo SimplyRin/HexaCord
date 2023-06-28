@@ -90,11 +90,11 @@ public abstract class TabList
                     item.setProperties( new Property[ 0 ] );
                 }
             }
-            if ( item.getGamemode() != null )
+            if ( item.getGamemode() != player.getGamemode() )
             {
                 player.setGamemode( item.getGamemode() );
             }
-            if ( item.getPing() != null )
+            if ( item.getPing() != player.getPing() )
             {
                 player.setPing( item.getPing() );
             }

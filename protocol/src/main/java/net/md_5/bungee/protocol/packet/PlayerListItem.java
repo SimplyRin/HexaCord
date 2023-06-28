@@ -155,10 +155,10 @@ public class PlayerListItem extends DefinedPacket
         Boolean listed;
 
         // ADD_PLAYER & UPDATE_GAMEMODE
-        Integer gamemode;
+        int gamemode;
 
         // ADD_PLAYER & UPDATE_LATENCY
-        Integer ping;
+        int ping;
 
         // ADD_PLAYER & UPDATE_DISPLAY_NAME
         String displayName;
