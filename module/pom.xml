@@ -20,6 +20,7 @@
 
     <modules>
         <module>cmd-alert</module>
+        <module>cmd-bungee</module>
         <module>cmd-find</module>
         <module>cmd-kick</module>
         <module>cmd-list</module>

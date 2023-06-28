@@ -84,6 +84,7 @@ public class ModuleManager
         {
             case 0:
                 defaults.add( "jenkins://cmd_alert" );
+                defaults.add( "jenkins://cmd_bungee" );
                 defaults.add( "jenkins://cmd_find" );
                 defaults.add( "jenkins://cmd_list" );
                 defaults.add( "jenkins://cmd_send" );
