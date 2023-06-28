@@ -69,7 +69,7 @@ public class BungeeCordLauncher
 
                 try
                 {
-                    URL api = new URL( "https://ci.simplyrin.net/job/HexaCord-r/lastStableBuild/buildNumber" );
+                    URL api = new URL( "https://ci.simplyrin.net/job/HexaCord/lastStableBuild/buildNumber" );
                     URLConnection con = api.openConnection();
                     // 15 second timeout at various stages
                     con.setConnectTimeout( 15000 );
