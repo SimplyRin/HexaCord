@@ -9,6 +9,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +24,22 @@ public abstract class DefinedPacket
 
     public static void writeString(String s, ByteBuf buf)
     {
-        if ( s.length() > Short.MAX_VALUE )
+        writeString( s, buf, Short.MAX_VALUE );
+    }
+
+    public static void writeString(String s, ByteBuf buf, int maxLength)
+    {
+        if ( s.length() > maxLength )
         {
-            throw new OverflowPacketException( "Cannot send string longer than Short.MAX_VALUE (got " + s.length() + " characters)" );
+            throw new OverflowPacketException( "Cannot send string longer than " + maxLength + " (got " + s.length() + " characters)" );
         }
 
         byte[] b = s.getBytes( Charsets.UTF_8 );
+        if ( b.length > maxLength * 3 )
+        {
+            throw new OverflowPacketException( "Cannot send string longer than " + ( maxLength * 3 ) + " (got " + b.length + " bytes)" );
+        }
+
         writeVarInt( b.length, buf );
         buf.writeBytes( b );
     }
@@ -39,15 +52,14 @@ public abstract class DefinedPacket
     public static String readString(ByteBuf buf, int maxLen)
     {
         int len = readVarInt( buf );
-        if ( len > maxLen * 4 )
+        if ( len > maxLen * 3 )
         {
-            throw new OverflowPacketException( "Cannot receive string longer than " + maxLen * 4 + " (got " + len + " bytes)" );
+            throw new OverflowPacketException( "Cannot receive string longer than " + maxLen * 3 + " (got " + len + " bytes)" );
         }
 
-        byte[] b = new byte[ len ];
-        buf.readBytes( b );
+        String s = buf.toString( buf.readerIndex(), len, Charsets.UTF_8 );
+        buf.readerIndex( buf.readerIndex() + len );
 
-        String s = new String( b, Charsets.UTF_8 );
         if ( s.length() > maxLen )
         {
             throw new OverflowPacketException( "Cannot receive string longer than " + maxLen + " (got " + s.length() + " characters)" );
@@ -305,7 +317,7 @@ public abstract class DefinedPacket
     {
         if ( buf.readBoolean() )
         {
-            return new PlayerPublicKey( buf.readLong(), readArray( buf ), readArray( buf ) );
+            return new PlayerPublicKey( buf.readLong(), readArray( buf, 512 ), readArray( buf, 4096 ) );
         }
 
         return null;
@@ -327,6 +339,53 @@ public abstract class DefinedPacket
         {
             throw new RuntimeException( "Exception writing tag", ex );
         }
+    }
+
+    public static <E extends Enum<E>> void writeEnumSet(EnumSet<E> enumset, Class<E> oclass, ByteBuf buf)
+    {
+        E[] enums = oclass.getEnumConstants();
+        BitSet bits = new BitSet( enums.length );
+
+        for ( int i = 0; i < enums.length; ++i )
+        {
+            bits.set( i, enumset.contains( enums[i] ) );
+        }
+
+        writeFixedBitSet( bits, enums.length, buf );
+    }
+
+    public static <E extends Enum<E>> EnumSet<E> readEnumSet(Class<E> oclass, ByteBuf buf)
+    {
+        E[] enums = oclass.getEnumConstants();
+        BitSet bits = readFixedBitSet( enums.length, buf );
+        EnumSet<E> set = EnumSet.noneOf( oclass );
+
+        for ( int i = 0; i < enums.length; ++i )
+        {
+            if ( bits.get( i ) )
+            {
+                set.add( enums[i] );
+            }
+        }
+
+        return set;
+    }
+
+    public static BitSet readFixedBitSet(int i, ByteBuf buf)
+    {
+        byte[] bits = new byte[ ( i + 8 ) >> 3 ];
+        buf.readBytes( bits );
+
+        return BitSet.valueOf( bits );
+    }
+
+    public static void writeFixedBitSet(BitSet bits, int size, ByteBuf buf)
+    {
+        if ( bits.length() > size )
+        {
+            throw new OverflowPacketException( "BitSet too large (expected " + size + " got " + bits.size() + ")" );
+        }
+        buf.writeBytes( Arrays.copyOf( bits.toByteArray(), ( size + 8 ) >> 3 ) );
     }
 
     public void read(ByteBuf buf)

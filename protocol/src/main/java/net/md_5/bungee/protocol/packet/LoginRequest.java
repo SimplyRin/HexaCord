@@ -1,6 +1,7 @@
 package net.md_5.bungee.protocol.packet;
 
 import io.netty.buffer.ByteBuf;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -19,14 +20,22 @@ public class LoginRequest extends DefinedPacket
 
     private String data;
     private PlayerPublicKey publicKey;
+    private UUID uuid;
 
     @Override
     public void read(ByteBuf buf, ProtocolConstants.Direction direction, int protocolVersion)
     {
         data = readString( buf, 16 );
-        if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_19 )
+        if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_19 && protocolVersion < ProtocolConstants.MINECRAFT_1_19_3 )
         {
             publicKey = readPublicKey( buf );
+        }
+        if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_19_1 )
+        {
+            if ( buf.readBoolean() )
+            {
+                uuid = readUUID( buf );
+            }
         }
     }
 
@@ -34,9 +43,20 @@ public class LoginRequest extends DefinedPacket
     public void write(ByteBuf buf, ProtocolConstants.Direction direction, int protocolVersion)
     {
         writeString( data, buf );
-        if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_19 )
+        if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_19 && protocolVersion < ProtocolConstants.MINECRAFT_1_19_3 )
         {
             writePublicKey( publicKey, buf );
+        }
+        if ( protocolVersion >= ProtocolConstants.MINECRAFT_1_19_1 )
+        {
+            if ( uuid != null )
+            {
+                buf.writeBoolean( true );
+                writeUUID( uuid, buf );
+            } else
+            {
+                buf.writeBoolean( false );
+            }
         }
     }
 

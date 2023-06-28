@@ -31,6 +31,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.event.ServerConnectEvent;
 import net.md_5.bungee.api.event.ServerDisconnectEvent;
@@ -54,11 +55,14 @@ import net.md_5.bungee.protocol.packet.Commands;
 import net.md_5.bungee.protocol.packet.KeepAlive;
 import net.md_5.bungee.protocol.packet.Kick;
 import net.md_5.bungee.protocol.packet.PlayerListItem;
+import net.md_5.bungee.protocol.packet.PlayerListItemRemove;
+import net.md_5.bungee.protocol.packet.PlayerListItemUpdate;
 import net.md_5.bungee.protocol.packet.PluginMessage;
 import net.md_5.bungee.protocol.packet.Respawn;
 import net.md_5.bungee.protocol.packet.ScoreboardDisplay;
 import net.md_5.bungee.protocol.packet.ScoreboardObjective;
 import net.md_5.bungee.protocol.packet.ScoreboardScore;
+import net.md_5.bungee.protocol.packet.ServerData;
 import net.md_5.bungee.protocol.packet.SetCompression;
 import net.md_5.bungee.protocol.packet.TabCompleteResponse;
 import net.md_5.bungee.tab.TabList;
@@ -147,6 +151,20 @@ public class DownstreamBridge extends PacketHandler
 
     @Override
     public void handle(PlayerListItem playerList) throws Exception
+    {
+        con.getTabListHandler().onUpdate( TabList.rewrite( playerList ) );
+        throw CancelSendSignal.INSTANCE; // Always throw because of profile rewriting
+    }
+
+    @Override
+    public void handle(PlayerListItemRemove playerList) throws Exception
+    {
+        con.getTabListHandler().onUpdate( TabList.rewrite( playerList ) );
+        throw CancelSendSignal.INSTANCE; // Always throw because of profile rewriting
+    }
+
+    @Override
+    public void handle(PlayerListItemUpdate playerList) throws Exception
     {
         con.getTabListHandler().onUpdate( TabList.rewrite( playerList ) );
         throw CancelSendSignal.INSTANCE; // Always throw because of profile rewriting
@@ -396,6 +414,27 @@ public class DownstreamBridge extends PacketHandler
                     }
                     break;
                 }
+                case "GetPlayerServer":
+                {
+                    String name = in.readUTF();
+                    ProxiedPlayer player = bungee.getPlayer( name );
+                    out.writeUTF( "GetPlayerServer" );
+                    out.writeUTF( name );
+                    if ( player == null )
+                    {
+                        out.writeUTF( "" );
+                        break;
+                    }
+                    Server srv = player.getServer();
+                    if ( srv == null )
+                    {
+                        out.writeUTF( "" );
+                    } else
+                    {
+                        out.writeUTF( srv.getInfo().getName() );
+                    }
+                    break;
+                }
                 case "IP":
                     out.writeUTF( "IP" );
                     if ( con.getSocketAddress() instanceof InetSocketAddress )
@@ -557,6 +596,16 @@ public class DownstreamBridge extends PacketHandler
                     }
                     break;
                 }
+                case "KickPlayerRaw":
+                {
+                    ProxiedPlayer player = bungee.getPlayer( in.readUTF() );
+                    if ( player != null )
+                    {
+                        BaseComponent[] kickReason = ComponentSerializer.parse( in.readUTF() );
+                        player.disconnect( kickReason );
+                    }
+                    break;
+                }
             }
 
             // Check we haven't set out to null, and we have written data, if so reply back back along the BungeeCord channel
@@ -688,6 +737,16 @@ public class DownstreamBridge extends PacketHandler
             con.unsafe().sendPacket( commands );
             throw CancelSendSignal.INSTANCE;
         }
+    }
+
+    @Override
+    public void handle(ServerData serverData) throws Exception
+    {
+        // 1.19.4 doesn't allow empty MOTD and we probably don't want to simulate a ping event to get the "correct" one
+        // serverData.setMotd( null );
+        // serverData.setIcon( null );
+        // con.unsafe().sendPacket( serverData );
+        throw CancelSendSignal.INSTANCE;
     }
 
     @Override

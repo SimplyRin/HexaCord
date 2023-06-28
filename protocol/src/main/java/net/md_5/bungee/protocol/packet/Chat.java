@@ -54,7 +54,13 @@ public class Chat extends DefinedPacket
     @Override
     public void write(ByteBuf buf, ProtocolConstants.Direction direction, int protocolVersion)
     {
-        writeString( message, buf );
+        if ( direction == ProtocolConstants.Direction.TO_CLIENT && protocolVersion <= ProtocolConstants.MINECRAFT_1_8 )
+        {
+            writeString( message, buf );
+        } else
+        {
+            writeString( message, buf, ( direction == ProtocolConstants.Direction.TO_CLIENT ) ? 262144 : ( protocolVersion >= ProtocolConstants.MINECRAFT_1_11 ? 256 : 100 ) );
+        }
         if ( direction == ProtocolConstants.Direction.TO_CLIENT && protocolVersion >= ProtocolConstants.MINECRAFT_1_8 )
         {
             buf.writeByte( position );
