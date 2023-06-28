@@ -83,13 +83,13 @@ public class ModuleManager
         switch ( version )
         {
             case 0:
-                defaults.add( "travis-ci://cmd_alert" );
-                defaults.add( "travis-ci://cmd_find" );
-                defaults.add( "travis-ci://cmd_list" );
-                defaults.add( "travis-ci://cmd_send" );
-                defaults.add( "travis-ci://cmd_server" );
+                defaults.add( "jenkins://cmd_alert" );
+                defaults.add( "jenkins://cmd_find" );
+                defaults.add( "jenkins://cmd_list" );
+                defaults.add( "jenkins://cmd_send" );
+                defaults.add( "jenkins://cmd_server" );
             case 1:
-                defaults.add( "travis-ci://reconnect_yaml" );
+                defaults.add( "jenkins://reconnect_yaml" );
         }
         config.put( "modules", defaults );
         config.put( "version", 2 );
